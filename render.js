@@ -325,15 +325,6 @@ function updateParticles() {
         p.y += p.vy;
         return (p.o -= 0.05) > 0;
     });
-    particles.jetpack = particles.jetpack.filter(p => {
-        p.lx = p.x;
-        p.ly = p.y;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.hue += 10;
-        p.s *= 0.95;
-        return (p.o -= 0.02) > 0;
-    });
     particles.trail = particles.trail.filter(p => {
         p.x += p.vx;
         p.y += p.vy;
