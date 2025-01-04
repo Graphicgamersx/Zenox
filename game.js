@@ -13,6 +13,83 @@ for (let i of exitHatRewards) {
     });
 }
 
+document.addEventListener("keydown", function (event) {
+    switch (event.key) {
+        case "Insert": {
+            send({ e: "colorChange", c: [255, 512, 512] });
+            send({ e: "message", message: "/respawn" });
+            break;
+        }
+        case "Home": {
+           let h = 0;
+            setInterval(() => {
+                const rgb = hslToRgb(h, 1, .75);
+                send({ e: "colorChange", c: rgb });
+                send({ e: "message", message: "/respawn" });
+                h += 0.01;
+                h %= 1;
+            }, 30);
+
+            const { abs, min, max, round } = Math;
+            function hslToRgb(h, s, l) {
+                let r, g, b;
+
+                if (s === 0) {
+                    r = g = b = l; // achromatic
+                } else {
+                    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                    const p = 2 * l - q;
+                    r = hueToRgb(p, q, h + 1 / 3);
+                    g = hueToRgb(p, q, h);
+                    b = hueToRgb(p, q, h - 1 / 3);
+                }
+
+                return [round(r * 255), round(g * 255), round(b * 255)];
+            }
+
+            function hueToRgb(p, q, t) {
+                if (t < 0) t += 1;
+                if (t > 1) t -= 1;
+                if (t < 1 / 6) return p + (q - p) * 6 * t;
+                if (t < 1 / 2) return q;
+                if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+                return p; 
+            }
+            break;
+        }
+         case "Delete": {
+             send({ e: "logout" });
+             send({ e: "powerChange", m: 0, i: 9 });
+         }
+         break;
+        case "End": {
+            const extractNames = a => a.map(([n]) => n);
+            const allowedPlayers = extractNames(state.playerList);
+            const alreadyBanned = [];
+            message({ s: "[LOCK]", m: `allowed: ${allowedPlayers.join(", ")}`, r: 1 });
+            ws.addEventListener("message", e => {
+                const msg = msgpack.decode(new Uint8Array(e.data));
+                if (msg.e === "updateStates") {
+                    extractNames(msg.m.playerList).forEach(n => {
+                        if (!allowedPlayers.includes(n) && !alreadyBanned.includes(n)) {
+                            sendMessage(`/ban ${n}`);
+                            message({ s: "[LOCK]", m: `banned ${n}`, r: 1 });
+                            alreadyBanned.push(n);
+                        }
+                    });
+                }
+            });
+            break;
+        }
+        case "F2": {
+            send({ e: "games" }); ws.addEventListener("message", e => { let msg = msgpack.decode(new Uint8Array(e.data)); if (msg.e === "games") msg.g.forEach(g => { console.log(g.name + "'s password: " + g.private); }); });
+            break;
+        }
+    }
+});
+
+
+
 var keysDown = new Set();
 document.addEventListener("keydown", e => {
     if (e.repeat) return;
@@ -24,12 +101,12 @@ document.addEventListener("keyup", e => {
     keysDown.delete(e.key?.toLowerCase());
 });
 
-/* const clientWS = new ClientWS("wss://skapclientserver.nky5223.repl.co");
+const clientWS = new ClientWS("wss://skapclientserver.nky5223.repl.co");
 clientWS.init();
 clientWS.onmessage = onClientMessage;
 clientWS.onopen = onClientOpen;
-clientWS.onclose = onClientClose; */
-var webbysocket;
+clientWS.onclose = onClientClose;
+var ws;
 
 var pauseMenuOpen = false;
 
@@ -37,9 +114,8 @@ var power1Value;
 var power2Value;
 
 function connect() {
-    webbysocket = new WebSocket("wss://skap.io");
-    webbysocket.binaryType = "arraybuffer";
-    webbysocket.onclose = () => console.error("websocket closed");
+    ws = new WebSocket("wss://skap.io");
+    ws.binaryType = "arraybuffer";
 }
 
 connect();
@@ -69,41 +145,41 @@ function updateStates(m) {
     lastUpdate = now;
 
     let player = m.players[m.infos.id];
-    /* sendWs({
+    send({
         e: "username",
         username: player.name
     }, clientWS);
-    sendWs({
+    send({
         e: "fuel",
         user: player.name,
         fuel: player.fuel
-    }, clientWS); */
+    }, clientWS);
 
     power0CD.style.height = (isNaN(m.infos.oneCooldown) ? 0 : m.infos.oneCooldown) * 100 + "%";
     power1CD.style.height = (isNaN(m.infos.twoCooldown) ? 0 : m.infos.twoCooldown) * 100 + "%";
     power0Heat.style.height = m.infos.oneHeat * 100 + "%";
     power1Heat.style.height = m.infos.twoHeat * 100 + "%";
 
-    /* sendWs({
+    send({
         e: "cooldown",
         slot: 0,
         cooldown: m.infos.oneCooldown
     }, clientWS);
-    sendWs({
+    send({
         e: "cooldown",
         slot: 1,
         cooldown: m.infos.twoCooldown
     }, clientWS);
-    sendWs({
+    send({
         e: "heat",
         slot: 0,
         heat: m.infos.oneHeat
     }, clientWS);
-    sendWs({
+    send({
         e: "heat",
         slot: 1,
         heat: m.infos.twoHeat
-    }, clientWS); */
+    }, clientWS);
 
     // Death/Freeze message
     if (player.states.includes("Died")) {
@@ -118,7 +194,7 @@ function updateStates(m) {
         //power0.disabled = false;
         //power1.disabled = false;
     };
-    document.title = `SkapNightly${player.states.includes("Died") ? " <Dead>" : player.states.includes("Freeze") ? " <Frozen>" : ""}`
+    document.title = `ZenoxClient${player.states.includes("Died") ? " <Dead>" : player.states.includes("Freeze") ? " <Frozen>" : ""}`
 
     // List players
     while (playerList.firstChild) {
@@ -128,7 +204,7 @@ function updateStates(m) {
         const el = document.createElement("p");
         if (p[2]) el.classList.add("deadPlayerName");
         if (p[3]) el.classList.add("freezePlayerName");
-        // if (p[0] in SkapClientPlayers) el.classList.add("skapclientPlayerName")
+        if (p[0] in SkapClientPlayers) el.classList.add("skapclientPlayerName")
         el.innerHTML = p[0].safe() + ":&nbsp;" + p[1].safe();
         /*var color = [0, 0, 0];
         for (let [uuid, player] of Object.entries(m.players)) {
@@ -260,7 +336,7 @@ function updateStates(m) {
                         s: 100,
                         w: p.gravDir === 0 || p.gravDir === 2 ? 5 : 2,
                         h: p.gravDir === 0 || p.gravDir === 2 ? 2 : 5,
-                        o: 0
+                        o: 1
                     });
                 }
             }
@@ -272,7 +348,7 @@ function updateStates(m) {
                     y: p.pos.y + (p.radius - 1) * Math.sin(dir),
                     vx: s * Math.cos(dir),
                     vy: s * Math.sin(dir),
-                    o: 0
+                    o: 0.75
                 });
             }
         }
@@ -538,7 +614,35 @@ function message(msg, force = false) {
                 : ["guestMsg", "userMsg", "modMsg"][msg.r + 1];
 
     //Add rainbow styling for devs, remove profanity, add <a> for links, and add timestamp
-    p.innerHTML = `<span class="">
+    p.innerHTML = `<span class="
+    ${msg.r === -2
+            ? ""
+            : devs.includes(msg.s)
+                ? "devMsg"
+                // : msg.s === "2121212121212"
+                //     ? "msg2121"
+                //     : ["wolfie", "wolfer", "wolfy"].includes(msg.s)
+                //         ? "wolfiemsg"
+                //         : ["OwO", "shrekismyson", "shrekismyson1", "shrekismyson2", "shrekismyson3", "shrekismyson4", "shrekismyson5", "shrexcellent", "shrekkamend", "shrektacular", "shrekingball", "shrekwashiss9z", "shrexpected", "shrexcited", "shrextreme", "shrekcepted", "fathershrek"].includes(msg.s)
+                //             ? "shrekmsg"
+                //             : msg.s === "HalOfManage"
+                //                 ? "halmanageMsg"
+                //                 : msg.s === "Whiz"
+                //                     ? "whizMsg"
+                //                     : msg.s === "Frog"
+                //                         ? "frogMsg"
+                //                         : msg.s === "Imaduck"
+                //                             ? "imaduckMsg"
+                //                             : msg.s === "drakerip"
+                //                                 ? "drakeMsg"
+                : msg.s === "Whiz"
+                    ? "whizmsg"
+                    : msg.s === "Wish"
+                        ? "wishmsg"
+                        : msg.s === "porooklturdle"
+                            ? "modMsg"
+                            : ""
+        }">
         ${force
             ? msg.s
             : checkProfanityString(msg.s.safe())
@@ -582,9 +686,7 @@ function sendMessage(msg) {
     // Test for n-words and stuff
     for (let i of seriousProfanCheck) {
         if (msg.toLowerCase().match(new RegExp("(^|\\s)" + i, "gi"))) {
-            //ban(`For attempting to say ${i[0] + "*".repeat(i.length - 1)} in chat`, 3600000);
-            // Quick fix for words like c*nt. Also, ban is useless because its implementation is all local.
-            return;
+            ban(`For attempting to say ${i[0] + "*".repeat(i.length - 1)} in chat`, 3600000);
         }
     }
     // emojis
@@ -602,13 +704,13 @@ function sendMessage(msg) {
             pingTime = Date.now();
         }
     }
-    sendWs({
+    send({
         e: "message",
         message: msg
     });
 }
 function keys(key = 0, value = true) {
-    sendWs({
+    send({
         e: "input",
         input: {
             keys: key,
@@ -620,18 +722,17 @@ function keys(key = 0, value = true) {
     else overlays[key]?.classList?.remove("overlayactive");
 }
 function changePower(slot = 0, power = 0) {
-    if (state.players[state.infos.id].states.includes("Died")) return;
     power = Number(power);
     if (!powers.has(power)) return;
     /*if (slot) {
         if (power == power0.value) {
             power0.value = power1.value;
-            sendWs({
+            send({
                 e: "powerChange",
                 m: 0,
                 i: Number(power0.value)
             });
-            sendWs({
+            send({
                 e: "power",
                 slot: 0,
                 power: Number(power0.value)
@@ -641,12 +742,12 @@ function changePower(slot = 0, power = 0) {
     } else {
         if (power == power1.value) {
             power1.value = power0.value;
-            sendWs({
+            send({
                 e: "powerChange",
                 m: 1,
                 i: Number(power1.value)
             });
-            sendWs({
+            send({
                 e: "power",
                 slot: 1,
                 power: Number(power1.value)
@@ -664,16 +765,16 @@ function changePower(slot = 0, power = 0) {
     else if (slot == 1)
         power2Value = power;
 
-    sendWs({
+    send({
         e: "powerChange",
         m: slot ? 1 : 0,
         i: Number(power)
     });
-    /* sendWs({
+    send({
         e: "power",
         slot: slot ? 1 : 0,
         power: Number(power)
-    }, clientWS); */
+    }, clientWS);
 
     updatePowerIcon(power0Img, power1Value);
     updatePowerIcon(power1Img, power2Value);
@@ -694,7 +795,7 @@ function togglePauseMenu() {
     }
 }
 function aim(x = 0, y = 0) {
-    sendWs({
+    send({
         e: "aim",
         m: [
             x,
@@ -702,7 +803,7 @@ function aim(x = 0, y = 0) {
         ]
     });
 }
-webbysocket.addEventListener("close", () => {
+ws.addEventListener("close", () => {
     canSend = false;
     //hide(gameDiv);
     //document.title = "Disconnected";

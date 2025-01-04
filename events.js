@@ -1,4 +1,4 @@
-webbysocket.addEventListener("open", () => {
+ws.addEventListener("open", () => {
     customAlert("Connected to skap.io servers.", 5);
 
     canSend = true;
@@ -6,7 +6,7 @@ webbysocket.addEventListener("open", () => {
         let sessionCookie = document.cookie.split(";").filter(cookie => cookie.startsWith("session="));
         if (sessionCookie.length) {
             // `{"e":"session","cookie":"${sessionCookie[0].slice(8)}"}`
-            sendWs({
+            send({
                 e: "session",
                 cookie: sessionCookie[0].slice(8)
             });
@@ -22,7 +22,7 @@ webbysocket.addEventListener("open", () => {
     });
     login.addEventListener("click", () => {
         getToken(token => {
-            sendWs({
+            send({
                 e: "login",
                 m: {
                     username: username.value,
@@ -33,7 +33,7 @@ webbysocket.addEventListener("open", () => {
         });
     });
     changingRoomBtn.addEventListener("click", () => {
-        sendWs({
+        send({
             e: "getStyle"
         })
         hide(logoutDiv);
@@ -44,21 +44,21 @@ webbysocket.addEventListener("open", () => {
         show(logoutDiv);
     });
     playerColor.addEventListener("input", () => {
-        sendWs({
+        send({
             e: "colorChange",
             c: hexToArr(playerColor.value)
         });
     });
     logout.addEventListener("click", () => {
-        sendWs({//Invalidates session
+        send({//Invalidates session
             e: "logout"
         });
-        //webbysocket.close();
+        //ws.close();
         //connect();
     });
     guest.addEventListener("click", () => {
         getToken(token => {
-            sendWs({
+            send({
                 e: "guest",
                 t: token
             });
@@ -66,7 +66,7 @@ webbysocket.addEventListener("open", () => {
     });
     register.addEventListener("click", () => {
         getToken(token => {
-            sendWs({
+            send({
                 e: "register",
                 m: {
                     username: username.value,
@@ -76,7 +76,7 @@ webbysocket.addEventListener("open", () => {
         });
     });
     play.addEventListener("click", () => {
-        sendWs({
+        send({
             e: "games"
         });
     });
@@ -85,7 +85,7 @@ webbysocket.addEventListener("open", () => {
         show(loginDiv);
     });
     refresh.addEventListener("click", () => {
-        sendWs({
+        send({
             e: "games"
         });
     });
@@ -176,8 +176,6 @@ Without perms:<ul>
 <li>/list - Tells you who has perms</li>
 <li>/respawn - Respawns you to Home</li>
 <li>/banned - Check bans</li>
-<li>/coinflip - Self explanitory</li>
-<li>/spam - Spams shit idfk</li>
 <li>/help - [CLIENT] Displays this message</li>
 <li>/block &lt;username&gt; - [CLIENT] Blocks a user</li>
 <li>/unblock &lt;username&gt; - [CLIENT] Unblocks a user</li>
@@ -208,33 +206,15 @@ Owner:<ul>
                 } else if (msg.startsWith("/unflip")) {
                     sendMessage(msg.slice(8) + " ┬─┬ ノ( ゜-゜ノ)");
                 } else if (msg.startsWith("/msg")) {
-                    sendWs(msgpack.encode({
+                    send(msgpack.encode({
                         e: "msg",
                         message: Object.entries(emojiList).reduce((m, [i, { char, regex }]) => m.replace(regex, char), msg.slice(5))
                     }), clientWS);
                 } else if (msg.startsWith("/clear")) {
                     chat.innerHTML = "";
-                } else if (msg.startsWith("/spam ")) {
-                    let spamMessage = msg.slice(6);
-                    message({
-                        s: "[GALAXY]",
-                        r: 0,
-                        m: "SPAMMING"
-                    }, true);
-    
-                    let spamInterval = setInterval(() => {
-                        sendMessage(spamMessage);
-                    }, 1893);
+                    message({ s: "[CLIENT]", m: `Cleared chat.`, r: 1 });
                 } else {
                     sendMessage(msg);
-                }
-                if (msg.startsWith("/coinflip")) {
-                    let result = Math.random() < 0.5 ? "heads" : "tails";
-                    message({
-                        s: "[GALAXY]",
-                        r: 0,
-                        m: `Landed on ${result}`
-                    }, true);
                 }
                 chatInput.value = "";
             }
@@ -308,7 +288,7 @@ Owner:<ul>
                     s: speedrun.checked
                 };
                 try {
-                    sendWs({
+                    send({
                         e: "createGame",
                         s: settings,
                         j: JSON.parse(e)
@@ -328,7 +308,7 @@ Owner:<ul>
                 u: uploadMap.checked,
                 s: speedrun.checked
             };
-            sendWs({
+            send({
                 e: "createGame",
                 s: settings
             });
