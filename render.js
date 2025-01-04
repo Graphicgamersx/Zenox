@@ -325,11 +325,6 @@ function updateParticles() {
         p.y += p.vy;
         return (p.o -= 0.05) > 0;
     });
-    particles.trail = particles.trail.filter(p => {
-        p.x += p.vx;
-        p.y += p.vy;
-        return (p.o -= 0.02) > 0;
-    });
 }
 
 function renderObstacles() {
@@ -864,10 +859,6 @@ function renderParticles() {
         ctx.fill();
     }
     //console.log(Object.entries(offset));
-    for (let p of particles.trail) {
-        ctx.globalAlpha = p.o;
-        ctx.drawImage(renderSettings.textures.trail, canvas.width / 2 + camScale * (p.x - 2.5 - camX), canvas.height / 2 + camScale * (p.y - 2.5 - camY), 5 * camScale, 5 * camScale);
-    }
 }
 
 function renderTurrets() {
