@@ -513,7 +513,7 @@ canvas {
     padding: 8px;
     color: #ffffff;
     font-size: 17px;
-    font-family: "Rubik", Arial, Helvetica, sans-serif;
+    font-family: "open sans", Arial, Helvetica, sans-serif;
     display: block;
 }
 #chatInput:focus {
