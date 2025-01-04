@@ -864,13 +864,6 @@ function renderParticles() {
         ctx.fill();
     }
     //console.log(Object.entries(offset));
-    let player = state.players[state.infos.id];
-    for (let p of particles.jetpack) {
-        ctx.fillStyle = `hsl(${p.hue},${p.s}%,50%)`;
-        ctx.globalAlpha = p.o;
-        let pos = {x: p.x - p.w / 2 - camX - (player.pos.x - player.lastPos.x), y: p.y - p.h / 2 - camY - (player.pos.y - player.lastPos.y)};
-        ctx.fillRect(canvas.width / 2 + camScale * pos.x, canvas.height / 2 + camScale * pos.y, p.w * camScale, p.h * camScale);
-    }
     for (let p of particles.trail) {
         ctx.globalAlpha = p.o;
         ctx.drawImage(renderSettings.textures.trail, canvas.width / 2 + camScale * (p.x - 2.5 - camX), canvas.height / 2 + camScale * (p.y - 2.5 - camY), 5 * camScale, 5 * camScale);
